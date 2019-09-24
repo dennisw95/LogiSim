@@ -61,6 +61,7 @@ class Grid {
         myCanvas.drawText("OR",350,blockSize*8,paint);
         myCanvas.drawText("NOT",350,blockSize*13,paint);
         myCanvas.drawText("Switch",350,blockSize*18,paint);
+        //making change to test github
 
     }
 
