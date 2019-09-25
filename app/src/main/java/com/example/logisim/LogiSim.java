@@ -12,14 +12,14 @@ import android.graphics.Paint;
 import android.graphics.Point;
 import android.view.Display;
 import android.widget.ImageView;
-import java.util.ArrayList;
-import java.util.Random;
-import java.util.Arrays;
 
 class Grid {
     private int numberHorizontalPixels, numberVerticalPixels, blockSize;
     private final int gridWidth = 40;
     private int gridHeight;
+    final float interfaceWidth;
+    final float halfOfInterfaceWidth;
+    final int numberOfDividers;
 
 
     Grid(Point size){
@@ -27,13 +27,14 @@ class Grid {
         numberVerticalPixels = size.y;
         blockSize = numberHorizontalPixels/gridWidth;
         gridHeight = numberVerticalPixels/blockSize;
+        interfaceWidth = 10*blockSize;
+        halfOfInterfaceWidth = interfaceWidth/2;
+        numberOfDividers = blockSize * 5;
     }
 
-    //private final int interfaceWidth = 8*blockSize;
 
-    void draw(Paint paint,Canvas myCanvas){
-        final float interfaceWidth = 11*blockSize;
-        final float halfOfInterfaceWidth = interfaceWidth/2;
+    public void draw(Paint paint, Canvas myCanvas){
+
 
         myCanvas.drawColor(Color.argb(255,255,255,255));
         //draws 2 horizontal lines to encapsulate the icons
@@ -42,7 +43,7 @@ class Grid {
 
         //a vertical divider to encapsulate the icons
         for (int i=0; i<4;i++){
-            final int numberOfDividers = blockSize * 5;
+
             myCanvas.drawLine(0, numberOfDividers *i,interfaceWidth, numberOfDividers *i,paint);
         }
 
@@ -57,11 +58,14 @@ class Grid {
         myCanvas.drawText("Wire",50,blockSize*13,paint);
         myCanvas.drawText("LED",50,blockSize*18,paint);
 
+        paint.setColor(Color.argb(255,0,0,255));
         myCanvas.drawText("AND",350,blockSize*3,paint);
+        paint.setColor(Color.argb(255,0,255,0));
         myCanvas.drawText("OR",350,blockSize*8,paint);
+        paint.setColor(Color.argb(255,255,0,0));
         myCanvas.drawText("NOT",350,blockSize*13,paint);
+        paint.setColor(Color.argb(255,128,0,255));
         myCanvas.drawText("Switch",350,blockSize*18,paint);
-        //making change to test github
 
     }
 
@@ -71,12 +75,14 @@ class Grid {
     int getBlockSize() {return blockSize;}
     int getNumberHorizontalPixels() {return numberHorizontalPixels;}
     int getNumberVerticalPixels() {return numberVerticalPixels;}
-
+    float getHalfOfInterfaceWidth() {return halfOfInterfaceWidth;}
+    int getNumberOfDividers(){return numberOfDividers;}
+    float getInterfaceWidth(){return interfaceWidth;}
 
 }
 class Touch{
-    float horizontalTouched = -100;
-    float verticalTouched = -100;
+    static float horizontalTouched = -100;
+    static float verticalTouched = -100;
 
     void draw(Canvas canvas, Grid grid, Paint paint) {
         // Draw the player's shot
@@ -96,13 +102,7 @@ class Distance{
         // score and distance text
         paint.setTextSize(grid.getBlockSize() * 2);
         paint.setColor(Color.argb(255, 0, 0, 255));
-        /*
-        canvas.drawText(
-                "  Distance: " + distanceFromSub,
-                grid.getBlockSize(), grid.getBlockSize() * 1.75f,
-                paint);
 
-         */
     }
     /*
     void assignDistance(int[] touchDistanceArray, int[][] gapArray,ArrayList<Sub> mySubs) {
@@ -130,7 +130,7 @@ public class LogiSim extends Activity {
     ImageView gameView;
     Bitmap blankBitmap;
     Canvas canvas;
-    Paint paint;
+    Paint paint,paintTemp;
     Touch touch;
     Distance distance;
 
@@ -155,6 +155,7 @@ public class LogiSim extends Activity {
         paint = new Paint();
         touch = new Touch();
         distance = new Distance();
+        paintTemp = new Paint();
 
 
         setContentView(gameView);
@@ -205,20 +206,25 @@ public class LogiSim extends Activity {
         if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
 
             // Process the player's shot by passing the
-            // coordinates of the player's finger to takeShot
-            takeShot(motionEvent.getX(), motionEvent.getY());
+            // coordinates of the player's finger to placeComponent
+            placeComponent(motionEvent.getX(), motionEvent.getY());
         }
 
         return true;
     }
 
-    void takeShot(float touchX, float touchY){
-        Log.d("Debugging", "In takeShot");
+    void placeComponent(float touchX, float touchY){
+        Log.d("Debugging", "In placeComponent");
 
         // Convert the float screen coordinates
         // into int grid coordinates
-        touch.horizontalTouched = (int)touchX/ grid.getBlockSize();
-        touch.verticalTouched = (int)touchY/ grid.getBlockSize();
+        Touch.horizontalTouched = (int)touchX/ grid.getBlockSize();
+        Touch.verticalTouched = (int)touchY/ grid.getBlockSize();
+
+        paintTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+        touch.draw(canvas,grid,paintTemp);
+
+
 
         /*
         // checks if any of our subs got hit
@@ -263,6 +269,17 @@ public class LogiSim extends Activity {
 
          */
         draw();
+    }
+
+    private Paint whatWasTouched(float horizontalTouched, float verticalTouched) {
+        if(horizontalTouched >= grid.getHalfOfInterfaceWidth() && horizontalTouched <= grid.getInterfaceWidth()){ //right column
+            if(verticalTouched <= grid.getNumberOfDividers()/5.0){ //first option
+                paint.setColor(Color.argb(255,0,0,255));
+                return paint;
+            }
+        }
+        paint.setColor(Color.argb(255,0,0,255));
+        return paint;
     }
 
     /*
