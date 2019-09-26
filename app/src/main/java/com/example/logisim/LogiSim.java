@@ -2,6 +2,11 @@ package com.example.logisim;
 
 
 import android.app.Activity;
+
+
+import android.content.Context;
+import android.graphics.BitmapFactory;
+
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.util.Log;
@@ -11,7 +16,9 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.view.Display;
+import android.view.View;
 import android.widget.ImageView;
+
 
 class Grid {
     private int numberHorizontalPixels, numberVerticalPixels, blockSize;
@@ -20,6 +27,8 @@ class Grid {
     final float interfaceWidth;
     final float halfOfInterfaceWidth;
     final int numberOfDividers;
+
+
 
 
     Grid(Point size){
@@ -51,19 +60,22 @@ class Grid {
 
     }
 
+
+
     void createIcons(Paint paint, Canvas myCanvas){
         paint.setTextSize(blockSize-3);
         myCanvas.drawText("Play/Pause",10,blockSize*3,paint);
         myCanvas.drawText("Edit",50,blockSize*8,paint);
         myCanvas.drawText("Wire",50,blockSize*13,paint);
+        paint.setColor(Color.argb(255,128,0,255));
         myCanvas.drawText("LED",50,blockSize*18,paint);
 
         paint.setColor(Color.argb(255,0,0,255));
         myCanvas.drawText("AND",350,blockSize*3,paint);
         paint.setColor(Color.argb(255,0,255,0));
-        myCanvas.drawText("OR",350,blockSize*8,paint);
+        myCanvas.drawText("OR",350,blockSize*7,paint);
         paint.setColor(Color.argb(255,255,0,0));
-        myCanvas.drawText("NOT",350,blockSize*13,paint);
+        myCanvas.drawText("NOT",340,blockSize*(float)12.75,paint);
         paint.setColor(Color.argb(255,128,0,255));
         myCanvas.drawText("Switch",350,blockSize*18,paint);
 
@@ -80,6 +92,62 @@ class Grid {
     float getInterfaceWidth(){return interfaceWidth;}
 
 }
+interface Node{
+    boolean eval();
+}
+/*
+    classes Switch, AND, OR, NOT, and LED come from
+    Daryl Posnett's LogiSimEvaluationExample
+ */
+class Switch implements Node{
+    boolean state;
+    public Switch(boolean state){this.state = state;}
+    public void toggle(){this.state = !this.state;}
+    public boolean eval(){return state;}
+}
+class AND implements Node{
+    Node a,b;
+
+    public AND () {}
+    public AND(Node a, Node b){
+        this.setA(a);
+        this.setB(b);
+    }
+    public void setA(Node n){
+        this.a = n;
+    }
+    public void setB(Node n){
+        this.b = n;
+    }
+
+    public boolean eval() {return a.eval() & b.eval();}
+
+
+}
+class OR implements Node{
+    Node a,b;
+    public OR () {}
+    public OR(Node a, Node b){
+        this.setA(a);
+        this.setB(b);
+    }
+    public void setA(Node n){
+        this.a = n;
+    }
+    public void setB(Node n){
+        this.b = n;
+    }
+
+    public boolean eval() {return a.eval() | b.eval();}
+}
+class NOT implements Node{
+    Node n;
+    public NOT(){}
+    public NOT(Node n){this.setSource(n);}
+    public void setSource(Node n){this.n=n;}
+    public boolean eval(){return !n.eval();}
+}
+class LED {}
 class Touch{
     static float horizontalTouched = -100;
     static float verticalTouched = -100;
@@ -116,11 +184,34 @@ class Distance{
 
      */
 }
+class Icons extends View {
+
+    public Icons(Context context) {
+        super(context);
+    }
+
+    @Override
+    public void onDraw(Canvas canvas) {
+        Bitmap _and = BitmapFactory.decodeResource(getResources(), R.drawable.andgatetrans);
+        Bitmap _or = BitmapFactory.decodeResource(getResources(), R.drawable.orgate);
+        Bitmap _not = BitmapFactory.decodeResource(getResources(), R.drawable.notgate);
+        Bitmap _switch = BitmapFactory.decodeResource(getResources(), R.drawable.switchsymbol);
+
+        //canvas.drawColor(Color.WHITE);
+        canvas.drawBitmap(_and,280 ,50, null);
+        canvas.save();
+        canvas.drawBitmap(_or,280 ,300, null);
+        canvas.drawBitmap(_not,280 ,600, null);
+        canvas.drawBitmap(_switch,280 ,900, null);
+        canvas.drawBitmap(_switch,5 ,900, null);
+
+    }
+}
+
 
 public class LogiSim extends Activity {
 
-    boolean hit = false;
-    int subsHit;
+    String touchTemp = "-1";
     int distanceFromSub;
     boolean debugging = false;
     Grid grid;
@@ -133,7 +224,7 @@ public class LogiSim extends Activity {
     Paint paint,paintTemp;
     Touch touch;
     Distance distance;
-
+    Icons drawIcons;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -150,20 +241,23 @@ public class LogiSim extends Activity {
                 grid.getNumberVerticalPixels(),
                 Bitmap.Config.ARGB_8888);
 
+
         canvas = new Canvas(blankBitmap);
         gameView = new ImageView(this);
         paint = new Paint();
         touch = new Touch();
         distance = new Distance();
         paintTemp = new Paint();
-
-
+        drawIcons = new Icons(this);
         setContentView(gameView);
+
+
 
         Log.d("Debugging", "In onCreate");
         newGame();
         draw();
     }
+
 
     void newGame(){
 
@@ -180,6 +274,8 @@ public class LogiSim extends Activity {
 
         // draw grid
         grid.draw(paint,canvas);
+        canvas.save();
+        drawIcons.draw(canvas);
 
         // draw players shot
         touch.draw(canvas,grid,paint);
@@ -188,15 +284,31 @@ public class LogiSim extends Activity {
 
         distance.draw(paint,grid,canvas,distanceFromSub);
 
-
-
+        regionHit();
+        touch.draw(canvas,grid,paintTemp);
         Log.d("Debugging", "In draw");
-        /*
+
         if (debugging) {
             printDebuggingText();
         }
 
-         */
+
+    }
+
+    private void regionHit() {
+        if(touchTemp.equals("AND")){
+            paintTemp.setColor(Color.argb(255,0,0,255));
+        }
+        if(touchTemp.equals("OR")){
+            paintTemp.setColor(Color.argb(255,0,255,0));
+        }
+        if(touchTemp.equals("NOT")){
+            paintTemp.setColor(Color.argb(255,255,0,0));
+        }
+        if(touchTemp.equals("SWITCH")){
+            paintTemp.setColor(Color.argb(255,128,0,255));
+        }
+
     }
 
     @Override
@@ -221,118 +333,83 @@ public class LogiSim extends Activity {
         Touch.horizontalTouched = (int)touchX/ grid.getBlockSize();
         Touch.verticalTouched = (int)touchY/ grid.getBlockSize();
 
-        paintTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
-        touch.draw(canvas,grid,paintTemp);
+        touchTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
 
-
-
-        /*
-        // checks if any of our subs got hit
-        int i;
-        for(i = 0;i<mySubs.size();i++) {
-            hit = mySubs.get(i).isHit(touch);
-            if(hit){
-                mySubs.get(i).hit = true;
-                subsHit++;
-                break;
-            }
-        }
-
-         */
-
-        /*
-        // How far away horizontally and vertically
-        // was the shot from each of the subs
-        // we will use this to calculate the distance of our touch to the closest sub
-        // rows will correspond to how many gaps, while col[0]==horizontalGap && col[1]==verticalGap
-        int[][] gapArray = new int[mySubs.size()][2];
-        assignGaps(gapArray);
-
-
-         */
-
-        /*
-        // For every touch on the screen, we need to know how far away we are from each sub
-        // at that given moment
-        int[] touchDistanceArray = new int[mySubs.size()];
-        distance.assignDistance(touchDistanceArray,gapArray,mySubs);
-        Arrays.sort(touchDistanceArray);
-
-        // after sorting, the shortest distance will be in the first index
-        distanceFromSub = touchDistanceArray[0];
-
-        // If there is a hit call boom
-        if(subsHit == 3)
-            boom();
-            // Otherwise call draw as usual
-        else draw();
-
-         */
         draw();
     }
 
-    private Paint whatWasTouched(float horizontalTouched, float verticalTouched) {
-        if(horizontalTouched >= grid.getHalfOfInterfaceWidth() && horizontalTouched <= grid.getInterfaceWidth()){ //right column
-            if(verticalTouched <= grid.getNumberOfDividers()/5.0){ //first option
-                paint.setColor(Color.argb(255,0,0,255));
-                return paint;
+    private String whatWasTouched(float horizontalTouched, float verticalTouched) {
+        if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
+            if(verticalTouched >= 0.0 && verticalTouched <=4.0){
+                return "AND";
             }
         }
-        paint.setColor(Color.argb(255,0,0,255));
-        return paint;
+        if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
+            if(verticalTouched >= 5.0 && verticalTouched <=9.0){
+                return "OR";
+            }
+        }
+        if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
+            if(verticalTouched >= 10.0 && verticalTouched <=14.0){
+                return "NOT";
+            }
+        }
+        if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
+            if(verticalTouched >= 15.0 && verticalTouched <=19.0){
+                return "SWITCH";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
+            if(verticalTouched >= 0.0 && verticalTouched <=4.0){
+                return "Play/Pause";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
+            if(verticalTouched >= 5.0 && verticalTouched <=9.0){
+                return "EDIT";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
+            if(verticalTouched >= 10.0 && verticalTouched <=14.0){
+                return "WIRE";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
+            if(verticalTouched >= 15.0 && verticalTouched <=19.0){
+                return "LED";
+            }
+        }
+
+        return "-1";
     }
 
-    /*
+
     // This code prints the debugging text
     public void printDebuggingText(){
         paint.setTextSize(grid.getBlockSize());
         canvas.drawText("numberHorizontalPixels = "
                         + grid.getNumberHorizontalPixels(),
-                50, grid.getBlockSize() * 3, paint);
+                750, grid.getBlockSize() * 3, paint);
         canvas.drawText("numberVerticalPixels = "
                         + grid.getNumberVerticalPixels(),
-                50, grid.getBlockSize() * 4, paint);
+                750, grid.getBlockSize() * 4, paint);
         canvas.drawText("blockSize = " + grid.getBlockSize(),
-                50, grid.getBlockSize() * 5, paint);
+                750, grid.getBlockSize() * 5, paint);
         canvas.drawText("gridWidth = " + grid.getWidth(),
-                50, grid.getBlockSize() * 6, paint);
+                750, grid.getBlockSize() * 6, paint);
         canvas.drawText("gridHeight = " + grid.getHeight(),
-                50, grid.getBlockSize() * 7, paint);
+                750, grid.getBlockSize() * 7, paint);
         canvas.drawText("horizontalTouched = " +
-                        touch.horizontalTouched, 50,
+                        touch.horizontalTouched, 750,
                 grid.getBlockSize() * 8, paint);
         canvas.drawText("verticalTouched = " +
-                        touch.verticalTouched, 50,
+                        touch.verticalTouched, 750,
                 grid.getBlockSize() * 9, paint);
-        canvas.drawText("sub1HorizontalPosition = " +
-                        mySubs.get(0).subHorizontalPosition, 50,
-                grid.getBlockSize() * 10, paint);
-        canvas.drawText("sub1VerticalPosition = " +
-                        mySubs.get(0).subVerticalPosition, 50,
-                grid.getBlockSize() * 11, paint);
-        canvas.drawText("hit = " + hit,
-                50, grid.getBlockSize() * 12, paint);
-        canvas.drawText("subsHit = " +
-                        subsHit,
-                50, grid.getBlockSize() * 13, paint);
-        canvas.drawText("debugging = " + debugging,
-                50, grid.getBlockSize() * 14, paint);
-        canvas.drawText("sub2HorizontalPosition = " +
-                        mySubs.get(1).subHorizontalPosition, 50,
-                grid.getBlockSize() * 15, paint);
-        canvas.drawText("sub2VerticalPosition = " +
-                        mySubs.get(1).subVerticalPosition, 50,
-                grid.getBlockSize() * 16, paint);
-        canvas.drawText("sub3HorizontalPosition = " +
-                        mySubs.get(2).subHorizontalPosition, 50,
-                grid.getBlockSize() * 17, paint);
-        canvas.drawText("sub3VerticalPosition = " +
-                        mySubs.get(2).subVerticalPosition, 50,
-                grid.getBlockSize() * 18, paint);
+
 
 
     }
 
-     */
+
 
 }
