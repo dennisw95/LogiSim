@@ -99,9 +99,26 @@ interface Node{
     classes Switch, AND, OR, NOT, and LED come from
     Daryl Posnett's LogiSimEvaluationExample
  */
-class Switch implements Node{
+class Switch extends View implements Node {
     boolean state;
-    public Switch(boolean state){this.state = state;}
+    Bitmap _switch = BitmapFactory.decodeResource(getResources(), R.drawable.switchsymbol);
+
+    public Switch(Context context,boolean state) {
+        super(context);
+        this.state = state;
+    }
+
+
+    public void draw(Canvas canvas,Grid grid) {
+
+        //canvas.drawColor(Color.WHITE);
+
+
+        super.draw(canvas);
+        canvas.drawBitmap(_switch, Touch.horizontalTouched*grid.getBlockSize(), Touch.verticalTouched*grid.getBlockSize(), null);
+
+    }
+
     public void toggle(){this.state = !this.state;}
     public boolean eval(){return state;}
 }
@@ -190,14 +207,17 @@ class Icons extends View {
         super(context);
     }
 
+
+    Bitmap _and = BitmapFactory.decodeResource(getResources(), R.drawable.andgatetrans);
+    Bitmap _or = BitmapFactory.decodeResource(getResources(), R.drawable.orgate);
+    Bitmap _not = BitmapFactory.decodeResource(getResources(), R.drawable.notgate);
+    Bitmap _switch = BitmapFactory.decodeResource(getResources(), R.drawable.switchsymbol);
+
     @Override
     public void onDraw(Canvas canvas) {
-        Bitmap _and = BitmapFactory.decodeResource(getResources(), R.drawable.andgatetrans);
-        Bitmap _or = BitmapFactory.decodeResource(getResources(), R.drawable.orgate);
-        Bitmap _not = BitmapFactory.decodeResource(getResources(), R.drawable.notgate);
-        Bitmap _switch = BitmapFactory.decodeResource(getResources(), R.drawable.switchsymbol);
 
         //canvas.drawColor(Color.WHITE);
+
         canvas.drawBitmap(_and,280 ,50, null);
         canvas.save();
         canvas.drawBitmap(_or,280 ,300, null);
@@ -213,7 +233,7 @@ public class LogiSim extends Activity {
 
     String touchTemp = "-1";
     int distanceFromSub;
-    boolean debugging = false;
+    boolean debugging = true;
     Grid grid;
 
     // Here are all the objects(instances)
@@ -284,7 +304,7 @@ public class LogiSim extends Activity {
 
         distance.draw(paint,grid,canvas,distanceFromSub);
 
-        regionHit();
+        regionHit(Touch.horizontalTouched,Touch.verticalTouched);
         touch.draw(canvas,grid,paintTemp);
         Log.d("Debugging", "In draw");
 
@@ -295,9 +315,11 @@ public class LogiSim extends Activity {
 
     }
 
-    private void regionHit() {
+    private void regionHit(float horizontalTouched, float verticalTouched) {
         if(touchTemp.equals("AND")){
-            paintTemp.setColor(Color.argb(255,0,0,255));
+            //paintTemp.setColor(Color.argb(255,0,0,255));
+            canvas.drawBitmap(drawIcons._and,horizontalTouched,verticalTouched,null);
+            canvas.save();
         }
         if(touchTemp.equals("OR")){
             paintTemp.setColor(Color.argb(255,0,255,0));
@@ -306,7 +328,9 @@ public class LogiSim extends Activity {
             paintTemp.setColor(Color.argb(255,255,0,0));
         }
         if(touchTemp.equals("SWITCH")){
-            paintTemp.setColor(Color.argb(255,128,0,255));
+            //paintTemp.setColor(Color.argb(255,128,0,255));
+            Switch test = new Switch(this,false);
+            test.draw(canvas,grid);
         }
 
     }
@@ -319,7 +343,30 @@ public class LogiSim extends Activity {
 
             // Process the player's shot by passing the
             // coordinates of the player's finger to placeComponent
-            placeComponent(motionEvent.getX(), motionEvent.getY());
+            //placeComponent(motionEvent.getX(), motionEvent.getY());
+            Touch.horizontalTouched = (int)motionEvent.getX()/ grid.getBlockSize();
+            Touch.verticalTouched = (int)motionEvent.getY()/ grid.getBlockSize();
+            touchTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+
+                touchTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+                switch(touchTemp){
+                    case "SWITCH":
+                        Switch test = new Switch(this,false);
+                        test.draw(canvas,grid);
+                        canvas.save();
+                        draw();
+                        break;
+
+                }
+
+
+            draw();
+
+
+
+
+
+
         }
 
         return true;
@@ -330,10 +377,11 @@ public class LogiSim extends Activity {
 
         // Convert the float screen coordinates
         // into int grid coordinates
-        Touch.horizontalTouched = (int)touchX/ grid.getBlockSize();
-        Touch.verticalTouched = (int)touchY/ grid.getBlockSize();
+
+
 
         touchTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+        regionHit(Touch.horizontalTouched,Touch.verticalTouched);
 
         draw();
     }
@@ -386,6 +434,7 @@ public class LogiSim extends Activity {
 
     // This code prints the debugging text
     public void printDebuggingText(){
+
         paint.setTextSize(grid.getBlockSize());
         canvas.drawText("numberHorizontalPixels = "
                         + grid.getNumberHorizontalPixels(),
@@ -400,11 +449,12 @@ public class LogiSim extends Activity {
         canvas.drawText("gridHeight = " + grid.getHeight(),
                 750, grid.getBlockSize() * 7, paint);
         canvas.drawText("horizontalTouched = " +
-                        touch.horizontalTouched, 750,
+                        Touch.horizontalTouched, 750,
                 grid.getBlockSize() * 8, paint);
         canvas.drawText("verticalTouched = " +
-                        touch.verticalTouched, 750,
+                        Touch.verticalTouched, 750,
                 grid.getBlockSize() * 9, paint);
+
 
 
 
