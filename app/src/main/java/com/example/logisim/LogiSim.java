@@ -2,11 +2,8 @@ package com.example.logisim;
 
 
 import android.app.Activity;
-
-
 import android.content.Context;
 import android.graphics.BitmapFactory;
-
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.util.Log;
@@ -20,6 +17,32 @@ import android.view.View;
 import android.widget.ImageView;
 
 
+
+class Position {
+    float posX,posY;
+
+    Position(float x, float y){
+        posX = x;
+        posY = y;
+    }
+
+
+    public void setPosX(float posX) {
+        this.posX = posX;
+    }
+
+    public void setPosY(float posY) {
+        this.posY = posY;
+    }
+
+    public float getPosX() {
+        return posX;
+    }
+
+    public float getPosY() {
+        return posY;
+    }
+}
 class Grid {
     private int numberHorizontalPixels, numberVerticalPixels, blockSize;
     private final int gridWidth = 40;
@@ -64,7 +87,7 @@ class Grid {
 
     void createIcons(Paint paint, Canvas myCanvas){
         paint.setTextSize(blockSize-3);
-        myCanvas.drawText("Play/Pause",10,blockSize*3,paint);
+        myCanvas.drawText("Play",55,blockSize*3,paint);
         myCanvas.drawText("Edit",50,blockSize*8,paint);
         myCanvas.drawText("Wire",50,blockSize*13,paint);
         paint.setColor(Color.argb(255,128,0,255));
@@ -99,31 +122,17 @@ interface Node{
     classes Switch, AND, OR, NOT, and LED come from
     Daryl Posnett's LogiSimEvaluationExample
  */
-class Switch extends View implements Node {
-    boolean state;
-    Bitmap _switch = BitmapFactory.decodeResource(getResources(), R.drawable.switchsymbol);
-
-    public Switch(Context context,boolean state) {
-        super(context);
-        this.state = state;
-    }
-
-
-    public void draw(Canvas canvas,Grid grid) {
-
-        //canvas.drawColor(Color.WHITE);
-
-
-        super.draw(canvas);
-        canvas.drawBitmap(_switch, Touch.horizontalTouched*grid.getBlockSize(), Touch.verticalTouched*grid.getBlockSize(), null);
-
-    }
-
-    public void toggle(){this.state = !this.state;}
-    public boolean eval(){return state;}
+class Switch implements Node{
+    boolean state=false ;
+    Position location;
+    public Switch(){}
+    public Switch( boolean state) { this . state = state; }
+    public void toggle() { this . state = ! this . state ; }
+    public boolean eval() { return state ; }
 }
 class AND implements Node{
     Node a,b;
+    Position location;
 
     public AND () {}
     public AND(Node a, Node b){
@@ -143,6 +152,8 @@ class AND implements Node{
 }
 class OR implements Node{
     Node a,b;
+    Position location;
+
     public OR () {}
     public OR(Node a, Node b){
         this.setA(a);
@@ -159,6 +170,8 @@ class OR implements Node{
 }
 class NOT implements Node{
     Node n;
+    Position location;
+
     public NOT(){}
     public NOT(Node n){this.setSource(n);}
     public void setSource(Node n){this.n=n;}
@@ -179,28 +192,7 @@ class Touch{
     }
 
 }
-class Distance{
 
-
-    void draw(Paint paint, Grid grid,Canvas canvas, int distanceFromSub){
-        // Re-size the text appropriate for the
-        // score and distance text
-        paint.setTextSize(grid.getBlockSize() * 2);
-        paint.setColor(Color.argb(255, 0, 0, 255));
-
-    }
-    /*
-    void assignDistance(int[] touchDistanceArray, int[][] gapArray,ArrayList<Sub> mySubs) {
-        int i;
-        for(i = 0; i < mySubs.size(); i++){
-            touchDistanceArray[i] = (int)Math.sqrt(
-                    ((gapArray[i][0] * gapArray[i][0]) +
-                            (gapArray[i][1] * gapArray[i][1])));
-        }
-    }
-
-     */
-}
 class Icons extends View {
 
     public Icons(Context context) {
@@ -226,6 +218,61 @@ class Icons extends View {
         canvas.drawBitmap(_switch,5 ,900, null);
 
     }
+    // TODO: going to make it so that I can draw these images with touch
+    // TODO: coordinates
+    public void drawNOTGate(Canvas canvas){
+        //AND gate = new AND();
+        //gate.location.setPosX(20);
+        //gate.location.setPosY(12);
+        canvas.drawBitmap(_not,1000 ,660, null);
+        canvas.drawBitmap(_not,1000 ,330, null);
+
+        //return gate;
+    }
+
+    public void drawANDGate(Canvas canvas){
+        //AND gate = new AND();
+        //gate.location.setPosX(20);
+        //gate.location.setPosY(12);
+        canvas.drawBitmap(_and,1400 ,330, null);
+
+        canvas.drawBitmap(_and,1400 ,660, null);
+        //return gate;
+    }
+    public void drawORGate(Canvas canvas){
+        //AND gate = new AND();
+        //gate.location.setPosX(20);
+        //gate.location.setPosY(12);
+        canvas.drawBitmap(_or,1800 ,495, null);
+
+        //return gate;
+    }
+    public void drawSwitch(Canvas canvas){
+        //AND gate = new AND();
+        //gate.location.setPosX(20);
+        //gate.location.setPosY(12);
+        canvas.drawBitmap(_switch,600 ,330, null);
+        canvas.drawBitmap(_switch,600 ,660, null);
+
+        //return gate;
+    }
+    public void drawLED(Canvas canvas){
+        //AND gate = new AND();
+        //gate.location.setPosX(20);
+        //gate.location.setPosY(12);
+        canvas.drawBitmap(_switch,1870 ,165, null);
+
+        //return gate;
+    }
+    public void drawANDGatev2(Canvas canvas, float x, float y){
+        //AND gate = new AND();
+        //gate.location.setPosX(20);
+        //gate.location.setPosY(12);
+        canvas.drawBitmap(_and,x ,y, null);
+
+        //return gate;
+    }
+
 }
 
 
@@ -233,18 +280,19 @@ public class LogiSim extends Activity {
 
     String touchTemp = "-1";
     int distanceFromSub;
-    boolean debugging = true;
+    boolean debugging = false;
     Grid grid;
 
     // Here are all the objects(instances)
     // of classes that we need to do some drawing
+
     ImageView gameView;
     Bitmap blankBitmap;
     Canvas canvas;
-    Paint paint,paintTemp;
+    Paint paint;
     Touch touch;
-    Distance distance;
     Icons drawIcons;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -266,8 +314,6 @@ public class LogiSim extends Activity {
         gameView = new ImageView(this);
         paint = new Paint();
         touch = new Touch();
-        distance = new Distance();
-        paintTemp = new Paint();
         drawIcons = new Icons(this);
         setContentView(gameView);
 
@@ -302,10 +348,12 @@ public class LogiSim extends Activity {
         grid.createIcons(paint,canvas);
 
 
-        distance.draw(paint,grid,canvas,distanceFromSub);
 
-        regionHit(Touch.horizontalTouched,Touch.verticalTouched);
-        touch.draw(canvas,grid,paintTemp);
+
+        drawCircuit();
+        dynamicXOR();
+
+        regionHit();
         Log.d("Debugging", "In draw");
 
         if (debugging) {
@@ -315,25 +363,73 @@ public class LogiSim extends Activity {
 
     }
 
-    private void regionHit(float horizontalTouched, float verticalTouched) {
-        if(touchTemp.equals("AND")){
-            //paintTemp.setColor(Color.argb(255,0,0,255));
-            canvas.drawBitmap(drawIcons._and,horizontalTouched,verticalTouched,null);
-            canvas.save();
-        }
-        if(touchTemp.equals("OR")){
-            paintTemp.setColor(Color.argb(255,0,255,0));
-        }
-        if(touchTemp.equals("NOT")){
-            paintTemp.setColor(Color.argb(255,255,0,0));
-        }
-        if(touchTemp.equals("SWITCH")){
-            //paintTemp.setColor(Color.argb(255,128,0,255));
-            Switch test = new Switch(this,false);
-            test.draw(canvas,grid);
-        }
+    private void drawCircuit() {
+        drawIcons.drawANDGate(canvas);
+        drawIcons.drawNOTGate(canvas);
+        drawIcons.drawORGate(canvas);
+        drawIcons.drawSwitch(canvas);
+        drawIcons.drawLED(canvas);
+        canvas.drawLine(835,400,1000,400,paint); //switch A to g1
+        canvas.drawLine(835,745,1000,745,paint); //switch B to g2
+        canvas.drawLine(1595,385,1760,510,paint); // g3 to g4
+        canvas.drawLine(1210,715 ,1375 ,440,paint); //g2 to g3
+        canvas.drawLine(1210,385 ,1375 ,660,paint); // g2 to g4
+        canvas.drawLine(825,385 ,1375 ,330,paint); // switch A to g3
+        canvas.drawLine(825,715 ,1375 ,770,paint); // switch B to g4
+        canvas.drawLine(1595,715 ,1760 ,550,paint); // g4 to g5
+        canvas.drawLine(2035,550 ,2035 ,275,paint); // g4 to g5
+
+        //canvas.drawText("1",1870+110,165+110,paint);
 
     }
+
+    public void dynamicXOR(){
+    // declare the objects
+    //
+
+
+        Switch A = new Switch();
+        Switch B = new Switch();
+        NOT g1 = new NOT();
+        NOT g2 = new NOT();
+        AND g3 = new AND();
+        AND g4 = new AND();
+        OR g5 = new OR();
+
+
+    // wire the objects
+    //
+
+        g1.setSource(A);
+        g2.setSource(B);
+        g3.setA(A);
+        g3.setB(g2);
+        g4.setA(g1);
+        g4.setB(B);
+        g5.setA(g3);
+        g5.setB(g4);
+
+        B.toggle();
+        if(A.state){
+            canvas.drawText("1",600+110,330+110,paint);
+        }else{
+            canvas.drawText("0",600+110,330+110,paint);
+        }
+        if(B.state){
+            canvas.drawText("1",600+110,660+110,paint);
+        }else{
+            canvas.drawText("0",600+110,660+110,paint);
+        }
+        if(g5.eval()){
+            canvas.drawText("1",1870+110,165+110,paint); // draw on the LED
+        }else{
+            canvas.drawText("0",1870+110,165+110,paint);
+        }
+
+
+        //g5.eval();
+    }
+
 
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent) {
@@ -344,35 +440,15 @@ public class LogiSim extends Activity {
             // Process the player's shot by passing the
             // coordinates of the player's finger to placeComponent
             //placeComponent(motionEvent.getX(), motionEvent.getY());
+            placeComponent();
             Touch.horizontalTouched = (int)motionEvent.getX()/ grid.getBlockSize();
             Touch.verticalTouched = (int)motionEvent.getY()/ grid.getBlockSize();
-            touchTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
-
-                touchTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
-                switch(touchTemp){
-                    case "SWITCH":
-                        Switch test = new Switch(this,false);
-                        test.draw(canvas,grid);
-                        canvas.save();
-                        draw();
-                        break;
-
-                }
-
-
-            draw();
-
-
-
-
-
-
         }
-
+        draw();
         return true;
     }
 
-    void placeComponent(float touchX, float touchY){
+    void placeComponent(){
         Log.d("Debugging", "In placeComponent");
 
         // Convert the float screen coordinates
@@ -381,11 +457,23 @@ public class LogiSim extends Activity {
 
 
         touchTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
-        regionHit(Touch.horizontalTouched,Touch.verticalTouched);
 
         draw();
     }
 
+    private void regionHit() {
+        if(touchTemp.equals("AND")){
+            drawIcons.drawANDGatev2(canvas,Touch.horizontalTouched*grid.getBlockSize(),Touch.verticalTouched*grid.getBlockSize());
+        }
+        if(touchTemp.equals("OR")){
+        }
+        if(touchTemp.equals("NOT")){
+        }
+        if(touchTemp.equals("SWITCH")){
+        }
+
+    }
+    // used to tell regionHit() what to do
     private String whatWasTouched(float horizontalTouched, float verticalTouched) {
         if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
             if(verticalTouched >= 0.0 && verticalTouched <=4.0){
@@ -454,8 +542,12 @@ public class LogiSim extends Activity {
         canvas.drawText("verticalTouched = " +
                         Touch.verticalTouched, 750,
                 grid.getBlockSize() * 9, paint);
-
-
+        canvas.drawText("horizontalTouched*55 = " +
+                        Touch.horizontalTouched*55, 750,
+                grid.getBlockSize() * 10, paint);
+        canvas.drawText("verticalTouched*55 = " +
+                        Touch.verticalTouched*55, 750,
+                grid.getBlockSize() * 11, paint);
 
 
     }
