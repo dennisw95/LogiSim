@@ -274,8 +274,8 @@ public class LogiSim extends Activity {
 
         drawCircuit();
         dynamicXOR();
-
         regionHit();
+
         Log.d("Debugging", "In draw");
 
         if (debugging) {
@@ -382,12 +382,13 @@ public class LogiSim extends Activity {
         // Convert the float screen coordinates
         // into int grid coordinates
         whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+
     }
 
     private void regionHit() {
 
         if(whatWasTouched.equals("AND")){
-            //drawIcons.drawANDGatev2(canvas,Touch.horizontalTouched*grid.getBlockSize(),Touch.verticalTouched*grid.getBlockSize());
+            canvas.drawBitmap(_and,Touch.horizontalTouched*Grid.blockSize,Touch.verticalTouched*Grid.blockSize,null);
         }
         if(whatWasTouched.equals("OR")){
         }
