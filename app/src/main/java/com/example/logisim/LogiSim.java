@@ -199,7 +199,7 @@ class Grid {
 
 public class LogiSim extends Activity {
 
-    String touchTemp = "-1";
+    String whatWasTouched = "-1";
     boolean debugging = false;
 
 
@@ -359,7 +359,7 @@ public class LogiSim extends Activity {
         }else{
             canvas.drawText("0",1870+110,165+110,paint);
         }
-        
+
     }
 
 
@@ -381,19 +381,19 @@ public class LogiSim extends Activity {
 
         // Convert the float screen coordinates
         // into int grid coordinates
-        touchTemp = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+        whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
     }
 
     private void regionHit() {
 
-        if(touchTemp.equals("AND")){
+        if(whatWasTouched.equals("AND")){
             //drawIcons.drawANDGatev2(canvas,Touch.horizontalTouched*grid.getBlockSize(),Touch.verticalTouched*grid.getBlockSize());
         }
-        if(touchTemp.equals("OR")){
+        if(whatWasTouched.equals("OR")){
         }
-        if(touchTemp.equals("NOT")){
+        if(whatWasTouched.equals("NOT")){
         }
-        if(touchTemp.equals("SWITCH")){
+        if(whatWasTouched.equals("SWITCH")){
         }
 
     }
