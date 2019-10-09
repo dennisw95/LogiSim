@@ -14,6 +14,8 @@ import android.graphics.Point;
 import android.view.Display;
 import android.widget.ImageView;
 
+import java.util.ArrayList;
+import java.util.List;
 
 
 /*
@@ -80,6 +82,36 @@ class NOT implements Node{
     public boolean eval(){return !n.eval();}
 }
 
+class VisualComponents{
+    int posX, posY;
+    String component;
+    public VisualComponents(float posX, float posY, String component){
+        this.posX = (int) (posX * Grid.blockSize);
+        this.posY = (int) (posY * Grid.blockSize);
+        this.component = component;
+    }
+    public void drawComponent(Canvas canvas){
+        switch (component){
+            case "AND":
+                canvas.drawBitmap(LogiSim._and,posX,posY,null);
+                break;
+            case "NOT":
+                canvas.drawBitmap(LogiSim._not,posX,posY,null);
+                break;
+            case "OR":
+                canvas.drawBitmap(LogiSim._or,posX,posY,null);
+                break;
+            case "SWITCH":
+                canvas.drawBitmap(LogiSim._switch,posX,posY,null);
+                break;
+            case "LED":
+                canvas.drawBitmap(LogiSim._switch,posX,posY,null);
+            default:
+                break;
+        }
+    }
+
+}
 class Touch{
     static float horizontalTouched = -100;
     static float verticalTouched = -100;
@@ -211,8 +243,8 @@ public class LogiSim extends Activity {
     Canvas canvas;
     Paint paint,paint2;
     Touch touch;
-    Bitmap _and,_or,_not,_switch;
-
+    static Bitmap _and,_or,_not,_switch;
+    List<VisualComponents> componentsList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -236,7 +268,7 @@ public class LogiSim extends Activity {
         paint = new Paint();
         paint2 = new Paint();
         touch = new Touch();
-        //drawIcons = new Icons(this);
+        componentsList = new ArrayList<>();
         setContentView(gameView);
 
 
@@ -265,17 +297,15 @@ public class LogiSim extends Activity {
 
         // draw grid
         grid.draw(paint,canvas);
-        //drawIcons.draw(canvas); //draws gates, switches in the UI
 
-        UIlayout();
+
         // draw players touch
         touch.draw(canvas,grid,paint);
 
-
+        UIlayout();
         drawCircuit();
         dynamicXOR();
-        regionHit();
-
+        drawVisualComponents();
         Log.d("Debugging", "In draw");
 
         if (debugging) {
@@ -283,6 +313,13 @@ public class LogiSim extends Activity {
         }
 
 
+    }
+
+    private void drawVisualComponents() {
+        int i = 0;
+        while(i<componentsList.size()){
+            componentsList.get(i).drawComponent(canvas);
+        }
     }
 
     private void drawCircuit() {
@@ -368,11 +405,10 @@ public class LogiSim extends Activity {
         Log.d("Debugging", "In onTouchEvent");
 
         if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
-            placeComponent();
             Touch.horizontalTouched = (int)motionEvent.getX()/ grid.getBlockSize();
             Touch.verticalTouched = (int)motionEvent.getY()/ grid.getBlockSize();
+            placeComponent();
         }
-        draw();
         return true;
     }
 
@@ -382,7 +418,9 @@ public class LogiSim extends Activity {
         // Convert the float screen coordinates
         // into int grid coordinates
         whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
-
+        VisualComponents addThis = new VisualComponents(Touch.horizontalTouched,Touch.verticalTouched,whatWasTouched);
+        componentsList.add(addThis);
+        draw();
     }
 
     private void regionHit() {
@@ -422,7 +460,7 @@ public class LogiSim extends Activity {
         }
         if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
             if(verticalTouched >= 0.0 && verticalTouched <=4.0){
-                return "Play/Pause";
+                return "Play";
             }
         }
         if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
