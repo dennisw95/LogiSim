@@ -197,25 +197,7 @@ class Grid {
 
 
 
-    void createIcons(Paint paint, Canvas myCanvas){
-        paint.setTextSize(blockSize-3);
-        paint.setColor(Color.BLACK);
-        myCanvas.drawText("Play",55,blockSize*3,paint);
-        myCanvas.drawText("Edit",50,blockSize*8,paint);
-        myCanvas.drawText("Wire",50,blockSize*13,paint);
-        paint.setColor(Color.argb(255,128,0,255));
-        myCanvas.drawText("LED",50,blockSize*18,paint);
 
-        paint.setColor(Color.argb(255,0,0,255));
-        myCanvas.drawText("AND",350,blockSize*3,paint);
-        paint.setColor(Color.argb(255,0,255,0));
-        myCanvas.drawText("OR",350,blockSize*7,paint);
-        paint.setColor(Color.argb(255,255,0,0));
-        myCanvas.drawText("NOT",340,blockSize*(float)12.75,paint);
-        paint.setColor(Color.argb(255,128,0,255));
-        myCanvas.drawText("Switch",350,blockSize*18,paint);
-
-    }
 
 
     int getHeight() {return gridHeight;}
@@ -245,6 +227,7 @@ public class LogiSim extends Activity {
     Touch touch;
     static Bitmap _and,_or,_not,_switch;
     List<VisualComponents> componentsList;
+    List<Node> logicComponentsList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -269,6 +252,7 @@ public class LogiSim extends Activity {
         paint2 = new Paint();
         touch = new Touch();
         componentsList = new ArrayList<>();
+        logicComponentsList = new ArrayList<>();
         setContentView(gameView);
 
 
@@ -302,10 +286,16 @@ public class LogiSim extends Activity {
         // draw players touch
         touch.draw(canvas,grid,paint);
 
+        //testing
+        final int listSize = componentsList.size();
+        for (int i=0;i<listSize;i++)
+            componentsList.get(i).drawComponent(canvas);
+
+
         UIlayout();
-        drawCircuit();
-        dynamicXOR();
-        drawVisualComponents();
+        //drawCircuit();
+        //dynamicXOR();
+        //drawVisualComponents();
         Log.d("Debugging", "In draw");
 
         if (debugging) {
@@ -315,12 +305,7 @@ public class LogiSim extends Activity {
 
     }
 
-    private void drawVisualComponents() {
-        int i = 0;
-        while(i<componentsList.size()){
-            componentsList.get(i).drawComponent(canvas);
-        }
-    }
+
 
     private void drawCircuit() {
 
@@ -404,10 +389,20 @@ public class LogiSim extends Activity {
     public boolean onTouchEvent(MotionEvent motionEvent) {
         Log.d("Debugging", "In onTouchEvent");
 
-        if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
+        if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
+            //placeComponent();
             Touch.horizontalTouched = (int)motionEvent.getX()/ grid.getBlockSize();
             Touch.verticalTouched = (int)motionEvent.getY()/ grid.getBlockSize();
+            whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+
+        }else if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_MOVE){
+
+        }
+        else if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP){
+            Touch.secondHorizontalTouch = (int)motionEvent.getX()/ grid.getBlockSize();
+            Touch.secondVerticalTouch = (int)motionEvent.getY()/ grid.getBlockSize();
             placeComponent();
+            draw();
         }
         return true;
     }
@@ -417,10 +412,33 @@ public class LogiSim extends Activity {
 
         // Convert the float screen coordinates
         // into int grid coordinates
-        whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
-        VisualComponents addThis = new VisualComponents(Touch.horizontalTouched,Touch.verticalTouched,whatWasTouched);
-        componentsList.add(addThis);
-        draw();
+        //whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+        if(whatWasTouched.equals("DELETE")){
+            componentsList.clear();
+            logicComponentsList.clear();
+        }else {
+            VisualComponents addThis = new VisualComponents(Touch.secondHorizontalTouch,Touch.secondVerticalTouch,whatWasTouched);
+            componentsList.add(addThis);
+            createLogicalComponent(whatWasTouched);
+        }
+
+}
+
+    private void createLogicalComponent(String whatWasTouched) {
+        switch(whatWasTouched){
+            case "AND":
+                logicComponentsList.add(new AND());
+                break;
+            case "OR":
+                logicComponentsList.add(new OR());
+                break;
+            case "NOT":
+                logicComponentsList.add(new NOT());
+                break;
+            case "SWITCH":
+                logicComponentsList.add(new Switch(false));
+                break;
+        }
     }
 
     private void regionHit() {
@@ -465,7 +483,7 @@ public class LogiSim extends Activity {
         }
         if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
             if(verticalTouched >= 5.0 && verticalTouched <=9.0){
-                return "EDIT";
+                return "DELETE";
             }
         }
         if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
@@ -499,7 +517,7 @@ public class LogiSim extends Activity {
         uiPaint.setTextSize(Grid.blockSize-3);
         uiPaint.setColor(Color.BLACK);
         canvas.drawText("Play",55,Grid.blockSize*3,uiPaint);
-        canvas.drawText("Edit",50,Grid.blockSize*8,uiPaint);
+        canvas.drawText("Delete",50,Grid.blockSize*8,uiPaint);
         canvas.drawText("Wire",50,Grid.blockSize*13,uiPaint);
         uiPaint.setColor(Color.argb(255,128,0,255));
         canvas.drawText("LED",50,Grid.blockSize*18,uiPaint);
@@ -513,22 +531,7 @@ public class LogiSim extends Activity {
         uiPaint.setColor(Color.argb(255,128,0,255));
         canvas.drawText("Switch",350,Grid.blockSize*18,uiPaint);
 
-        uiPaint.setTextSize(Grid.blockSize-3);
-        uiPaint.setColor(Color.BLACK);
-        canvas.drawText("Play",55,Grid.blockSize*3,uiPaint);
-        canvas.drawText("Edit",50,Grid.blockSize*8,uiPaint);
-        canvas.drawText("Wire",50,Grid.blockSize*13,uiPaint);
-        uiPaint.setColor(Color.argb(255,128,0,255));
-        canvas.drawText("LED",50,Grid.blockSize*18,uiPaint);
 
-        uiPaint.setColor(Color.argb(255,0,0,255));
-        canvas.drawText("AND",350,Grid.blockSize*3,uiPaint);
-        uiPaint.setColor(Color.argb(255,0,255,0));
-        canvas.drawText("OR",350,Grid.blockSize*7,uiPaint);
-        uiPaint.setColor(Color.argb(255,255,0,0));
-        canvas.drawText("NOT",340,Grid.blockSize*(float)12.75,uiPaint);
-        uiPaint.setColor(Color.argb(255,128,0,255));
-        canvas.drawText("Switch",350,Grid.blockSize*18,uiPaint);
     }
     // This code prints the debugging text
     public void printDebuggingText(){
