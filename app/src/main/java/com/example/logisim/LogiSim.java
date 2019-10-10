@@ -287,14 +287,11 @@ public class LogiSim extends Activity {
         touch.draw(canvas,grid,paint);
 
         //testing
-        final int listSize = componentsList.size();
-        for (int i=0;i<listSize;i++)
-            componentsList.get(i).drawComponent(canvas);
+        drawComponentsList();
 
 
         UIlayout();
-        //drawCircuit();
-        //dynamicXOR();
+
         //drawVisualComponents();
         Log.d("Debugging", "In draw");
 
@@ -305,33 +302,10 @@ public class LogiSim extends Activity {
 
     }
 
-
-
-    private void drawCircuit() {
-
-        canvas.drawBitmap(_not,1000 ,660, null);
-        canvas.drawBitmap(_not,1000 ,330, null);
-        canvas.drawBitmap(_and,1400 ,330, null);
-        canvas.drawBitmap(_and,1400 ,660, null);
-        canvas.drawBitmap(_or,1800 ,495, null);
-        canvas.drawBitmap(_switch,600 ,330, null);
-        canvas.drawBitmap(_switch,600 ,660, null);
-        canvas.drawBitmap(_switch,1870 ,165, null);
-
-
-
-        canvas.drawLine(835,400,1000,400,paint); //switch A to g1
-        canvas.drawLine(835,745,1000,745,paint); //switch B to g2
-        canvas.drawLine(1595,385,1760,510,paint); // g3 to g4
-        canvas.drawLine(1210,715 ,1375 ,440,paint); //g2 to g3
-        canvas.drawLine(1210,385 ,1375 ,660,paint); // g2 to g4
-        canvas.drawLine(825,385 ,1375 ,330,paint); // switch A to g3
-        canvas.drawLine(825,715 ,1375 ,770,paint); // switch B to g4
-        canvas.drawLine(1595,715 ,1760 ,550,paint); // g4 to g5
-        canvas.drawLine(2035,550 ,2035 ,275,paint); // g4 to g5
-
-
-
+    private void drawComponentsList() {
+        final int listSize = componentsList.size();
+        for (int i=0;i<listSize;i++)
+            componentsList.get(i).drawComponent(canvas);
     }
 
     void drawWire(){
@@ -390,13 +364,12 @@ public class LogiSim extends Activity {
         Log.d("Debugging", "In onTouchEvent");
 
         if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
-            //placeComponent();
             Touch.horizontalTouched = (int)motionEvent.getX()/ grid.getBlockSize();
             Touch.verticalTouched = (int)motionEvent.getY()/ grid.getBlockSize();
             whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
 
         }else if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_MOVE){
-
+            //do nothing, finger is moving on screen
         }
         else if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP){
             Touch.secondHorizontalTouch = (int)motionEvent.getX()/ grid.getBlockSize();
@@ -412,7 +385,6 @@ public class LogiSim extends Activity {
 
         // Convert the float screen coordinates
         // into int grid coordinates
-        //whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
         if(whatWasTouched.equals("DELETE")){
             componentsList.clear();
             logicComponentsList.clear();
@@ -441,19 +413,7 @@ public class LogiSim extends Activity {
         }
     }
 
-    private void regionHit() {
 
-        if(whatWasTouched.equals("AND")){
-            canvas.drawBitmap(_and,Touch.horizontalTouched*Grid.blockSize,Touch.verticalTouched*Grid.blockSize,null);
-        }
-        if(whatWasTouched.equals("OR")){
-        }
-        if(whatWasTouched.equals("NOT")){
-        }
-        if(whatWasTouched.equals("SWITCH")){
-        }
-
-    }
     // used to tell regionHit() what to do
     private String whatWasTouched(float horizontalTouched, float verticalTouched) {
         if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
