@@ -123,7 +123,7 @@ class Wire{
     float startX, startY, stopX, stopY;
 
     int posX, posY;
-    public Wire(float startX, float startY,float stopX, float stopY, String component){
+    public Wire(float startX, float startY,float stopX, float stopY){
         this.startX = startX;
         this.startY = startY;
         this.stopX = stopX;
