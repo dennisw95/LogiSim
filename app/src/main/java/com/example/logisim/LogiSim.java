@@ -148,6 +148,9 @@ class Wire{
 
 }
 class Touch{
+    public static float fourthHorizontalTouch;
+    public static float fourthVerticalTouch;
+    static float thirdHorizontalTouch,thirdVerticalTouch;
     static float horizontalTouched = -100;
     static float verticalTouched = -100;
     static float secondHorizontalTouch = -100;
@@ -223,6 +226,33 @@ class Grid {
 }
 
 public class LogiSim extends Activity {
+
+    static class TouchStatev2{
+        static String state = "StandBy";
+        String getState(){
+            return state;
+        }
+
+        void toggleState(String touched){
+            switch(state){
+                case "StandBy":
+                    if(touched.equals("AND") || touched.equals("NOT") || touched.equals("OR") || touched.equals("LED") || touched.equals("SWITCH")){
+                        state = "PlaceGate";
+                    }else if(touched.equals("WIRE")){
+                        state = "PlaceStartWire";
+                    }else if(touched.equals("DELETE")){
+                        state = "DELETE";
+                    }
+                    break;
+                case "PlaceStartWire":
+                    state = "PlaceEndWire";
+                    break;
+
+                default:
+                    state = "StandBy";
+            }
+        }
+    }
     static class TouchState {
         static boolean state = false;
 
@@ -251,7 +281,8 @@ public class LogiSim extends Activity {
     List<Node> logicalComponents;
     ArrayList<List<Node>> logicalSchematicList;
     ArrayList<List<VisualComponents>> visualSchematicList;
-    TouchState placeState, wireState;
+    TouchState placeState;
+    TouchStatev2 touchState;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -279,7 +310,7 @@ public class LogiSim extends Activity {
         logicalSchematicList = new ArrayList<>();
         visualSchematicList = new ArrayList<>();
         placeState = new TouchState();
-        wireState = new TouchState();
+        touchState = new TouchStatev2();
         setContentView(gameView);
 
 
@@ -386,6 +417,56 @@ public class LogiSim extends Activity {
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent) {
         Log.d("Debugging", "In onTouchEvent");
+        if ((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP){
+            switch (touchState.getState()) {
+                case "StandBy":
+                    Touch.horizontalTouched = (int) motionEvent.getX() / grid.getBlockSize();
+                    Touch.verticalTouched = (int) motionEvent.getY() / grid.getBlockSize();
+                    whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+
+                    if (whatWasTouched.equals("WIRE")) {
+                        touchState.toggleState(whatWasTouched);
+                    }
+                    if (whatWasTouched.equals("AND") || whatWasTouched.equals("NOT") || whatWasTouched.equals("OR") || whatWasTouched.equals("LED") || whatWasTouched.equals("SWITCH")) {
+                        touchState.toggleState(whatWasTouched);
+                    }
+
+                    break;
+                case "PlaceGate":
+                    Touch.secondHorizontalTouch = (int) motionEvent.getX() / grid.getBlockSize();
+                    Touch.secondVerticalTouch = (int) motionEvent.getY() / grid.getBlockSize();
+                    placeComponent();
+                    touchState.toggleState("");
+                    draw();
+                    break;
+                case "PlaceStartWire":
+                    Touch.thirdHorizontalTouch = (int) motionEvent.getX() / grid.getBlockSize();
+                    Touch.thirdVerticalTouch = (int) motionEvent.getY() / grid.getBlockSize();
+                    touchState.toggleState("PlaceEndWire");
+                    canvas.drawText("PlaceStartWire", 1500,1500,paint);
+                    break;
+                case "PlaceEndWire":
+                    Touch.fourthHorizontalTouch = (int) motionEvent.getX() / grid.getBlockSize();
+                    Touch.fourthVerticalTouch = (int) motionEvent.getY() / grid.getBlockSize();
+                    canvas.drawLine(Touch.thirdHorizontalTouch, Touch.thirdVerticalTouch, Touch.fourthHorizontalTouch, Touch.fourthVerticalTouch, paint);
+                    touchState.toggleState("");
+                    break;
+                case "DELETE":
+                    visualSchematicList.clear();
+                    logicalComponents.clear();
+                    touchState.toggleState("");
+                    break;
+            }
+            draw();
+        }
+        return true;
+    }
+
+ /*
+
+    @Override
+    public boolean onTouchEvent(MotionEvent motionEvent) {
+        Log.d("Debugging", "In onTouchEvent");
         if (placeState.getState() == false) {
             if ((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
                 Touch.horizontalTouched = (int) motionEvent.getX() / grid.getBlockSize();
@@ -411,6 +492,9 @@ public class LogiSim extends Activity {
         return true;
     }
 
+  */
+
+
     private void simulate() {
         final int listSize = logicalComponents.size();
 
@@ -422,8 +506,9 @@ public class LogiSim extends Activity {
 
         // Convert the float screen coordinates
         // into int grid coordinates
-        if(whatWasTouched.equals("WIRE")){
-
+        if(whatWasTouched.equals("DELETE")){
+            visualSchematicList.clear();
+            logicalComponents.clear();
         }
         else {
             VisualComponents addThis = new VisualComponents(Touch.secondHorizontalTouch,Touch.secondVerticalTouch,whatWasTouched);
