@@ -28,7 +28,6 @@ interface Node{
 // All the logical gates
 class Switch implements Node{
     boolean state=false ;
-    Position location;
     public Switch(){}
     public Switch( boolean state) { this . state = state; }
     public void toggle() { this . state = ! this . state ; }
@@ -36,7 +35,6 @@ class Switch implements Node{
 }
 class AND implements Node{
     Node a,b;
-    Position location;
 
     public AND () {}
     public AND(Node a, Node b){
@@ -56,7 +54,6 @@ class AND implements Node{
 }
 class OR implements Node{
     Node a,b;
-    Position location;
 
     public OR () {}
     public OR(Node a, Node b){
@@ -74,7 +71,6 @@ class OR implements Node{
 }
 class NOT implements Node{
     Node n;
-    Position location;
 
     public NOT(){}
     public NOT(Node n){this.setSource(n);}
@@ -105,11 +101,50 @@ class VisualComponents{
                 canvas.drawBitmap(LogiSim._switch,posX,posY,null);
                 break;
             case "LED":
-                canvas.drawBitmap(LogiSim._switch,posX,posY,null);
+                canvas.drawBitmap(LogiSim._led,posX,posY,null);
             default:
                 break;
         }
     }
+
+    public int getPosX() {
+        return posX;
+    }
+
+    public int getPosY() {
+        return posY;
+    }
+
+    public String getComponent() {
+        return component;
+    }
+}
+class Wire{
+    float startX, startY, stopX, stopY;
+
+    int posX, posY;
+    public Wire(float startX, float startY,float stopX, float stopY, String component){
+        this.startX = startX;
+        this.startY = startY;
+        this.stopX = stopX;
+        this.stopY = stopY;
+
+    }
+    public void wireComponent(Canvas canvas){
+        Paint paint = new Paint();
+        paint.setColor(Color.BLACK);
+        canvas.drawLine(startX,startY,stopX,stopY,paint);
+    }
+
+    public int getPosX() {
+        return posX;
+    }
+
+    public int getPosY() {
+        return posY;
+    }
+
+
 
 }
 class Touch{
@@ -129,31 +164,7 @@ class Touch{
     }
 
 }
-class Position {
-    float posX,posY;
 
-    Position(float x, float y){
-        posX = x;
-        posY = y;
-    }
-
-
-    public void setPosX(float posX) {
-        this.posX = posX;
-    }
-
-    public void setPosY(float posY) {
-        this.posY = posY;
-    }
-
-    public float getPosX() {
-        return posX;
-    }
-
-    public float getPosY() {
-        return posY;
-    }
-}
 class Grid {
     private int numberHorizontalPixels, numberVerticalPixels;
     static int blockSize;
@@ -212,7 +223,16 @@ class Grid {
 }
 
 public class LogiSim extends Activity {
+    static class TouchState {
+        static boolean state = false;
 
+        boolean getState(){
+            return state;
+        }
+        void toggleState(){
+             state = !state;
+        }
+    }
     String whatWasTouched = "-1";
     boolean debugging = false;
 
@@ -225,10 +245,13 @@ public class LogiSim extends Activity {
     Canvas canvas;
     Paint paint,paint2;
     Touch touch;
-    static Bitmap _and,_or,_not,_switch;
-    List<VisualComponents> componentsList;
-    List<Node> logicComponentsList;
-
+    static Bitmap _and,_or,_not,_switch,_led;
+    List<Wire> visualWires;
+    List<VisualComponents> visualComponents;
+    List<Node> logicalComponents;
+    ArrayList<List<Node>> logicalSchematicList;
+    ArrayList<List<VisualComponents>> visualSchematicList;
+    TouchState placeState, wireState;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -251,8 +274,12 @@ public class LogiSim extends Activity {
         paint = new Paint();
         paint2 = new Paint();
         touch = new Touch();
-        componentsList = new ArrayList<>();
-        logicComponentsList = new ArrayList<>();
+        visualComponents = new ArrayList<>();
+        logicalComponents = new ArrayList<>();
+        logicalSchematicList = new ArrayList<>();
+        visualSchematicList = new ArrayList<>();
+        placeState = new TouchState();
+        wireState = new TouchState();
         setContentView(gameView);
 
 
@@ -268,6 +295,7 @@ public class LogiSim extends Activity {
         _or = BitmapFactory.decodeResource(getResources(), R.drawable.orgate);
         _not = BitmapFactory.decodeResource(getResources(), R.drawable.notgate);
         _switch = BitmapFactory.decodeResource(getResources(), R.drawable.switchsymbol);
+        _led = BitmapFactory.decodeResource(getResources(),R.drawable.bulb);
     }
 
 
@@ -286,7 +314,6 @@ public class LogiSim extends Activity {
         // draw players touch
         touch.draw(canvas,grid,paint);
 
-        //testing
         drawComponentsList();
 
 
@@ -303,14 +330,11 @@ public class LogiSim extends Activity {
     }
 
     private void drawComponentsList() {
-        final int listSize = componentsList.size();
+        final int listSize = visualComponents.size();
         for (int i=0;i<listSize;i++)
-            componentsList.get(i).drawComponent(canvas);
+            visualComponents.get(i).drawComponent(canvas);
     }
 
-    void drawWire(){
-        canvas.drawLine(Touch.horizontalTouched,Touch.verticalTouched,Touch.secondHorizontalTouch,Touch.secondVerticalTouch,paint);
-    }
     public void dynamicXOR(){
     // declare the objects
     //
@@ -362,22 +386,35 @@ public class LogiSim extends Activity {
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent) {
         Log.d("Debugging", "In onTouchEvent");
+        if (placeState.getState() == false) {
+            if ((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
+                Touch.horizontalTouched = (int) motionEvent.getX() / grid.getBlockSize();
+                Touch.verticalTouched = (int) motionEvent.getY() / grid.getBlockSize();
+                whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
+                if(whatWasTouched.equals("DELETE")){
+                    visualComponents.clear();
+                    logicalComponents.clear();
+                }else if(whatWasTouched.equals("PLAY")){
+                    simulate();
+                }
+                placeState.toggleState();//sets to true
+                draw();
+            }
 
-        if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_DOWN) {
-            Touch.horizontalTouched = (int)motionEvent.getX()/ grid.getBlockSize();
-            Touch.verticalTouched = (int)motionEvent.getY()/ grid.getBlockSize();
-            whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
-
-        }else if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_MOVE){
-            //do nothing, finger is moving on screen
-        }
-        else if((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP){
-            Touch.secondHorizontalTouch = (int)motionEvent.getX()/ grid.getBlockSize();
-            Touch.secondVerticalTouch = (int)motionEvent.getY()/ grid.getBlockSize();
+        }else if (placeState.getState() == true) {
+            Touch.secondHorizontalTouch = (int) motionEvent.getX() / grid.getBlockSize();
+            Touch.secondVerticalTouch = (int) motionEvent.getY() / grid.getBlockSize();
             placeComponent();
+            placeState.toggleState();//sets to false
             draw();
         }
         return true;
+    }
+
+    private void simulate() {
+        final int listSize = logicalComponents.size();
+
+
     }
 
     void placeComponent(){
@@ -385,12 +422,12 @@ public class LogiSim extends Activity {
 
         // Convert the float screen coordinates
         // into int grid coordinates
-        if(whatWasTouched.equals("DELETE")){
-            componentsList.clear();
-            logicComponentsList.clear();
-        }else {
+        if(whatWasTouched.equals("WIRE")){
+
+        }
+        else {
             VisualComponents addThis = new VisualComponents(Touch.secondHorizontalTouch,Touch.secondVerticalTouch,whatWasTouched);
-            componentsList.add(addThis);
+            visualComponents.add(addThis);
             createLogicalComponent(whatWasTouched);
         }
 
@@ -399,16 +436,16 @@ public class LogiSim extends Activity {
     private void createLogicalComponent(String whatWasTouched) {
         switch(whatWasTouched){
             case "AND":
-                logicComponentsList.add(new AND());
+                logicalComponents.add(new AND());
                 break;
             case "OR":
-                logicComponentsList.add(new OR());
+                logicalComponents.add(new OR());
                 break;
             case "NOT":
-                logicComponentsList.add(new NOT());
+                logicalComponents.add(new NOT());
                 break;
             case "SWITCH":
-                logicComponentsList.add(new Switch(false));
+                logicalComponents.add(new Switch(false));
                 break;
         }
     }
@@ -472,7 +509,7 @@ public class LogiSim extends Activity {
         canvas.drawBitmap(_or,280 ,300, null);
         canvas.drawBitmap(_not,280 ,600, null);
         canvas.drawBitmap(_switch,280 ,900, null);
-        canvas.drawBitmap(_switch,5 ,900, null);
+        canvas.drawBitmap(_led,5 ,900, null);
 
         uiPaint.setTextSize(Grid.blockSize-3);
         uiPaint.setColor(Color.BLACK);
@@ -480,7 +517,7 @@ public class LogiSim extends Activity {
         canvas.drawText("Delete",50,Grid.blockSize*8,uiPaint);
         canvas.drawText("Wire",50,Grid.blockSize*13,uiPaint);
         uiPaint.setColor(Color.argb(255,128,0,255));
-        canvas.drawText("LED",50,Grid.blockSize*18,uiPaint);
+        canvas.drawText("LED",90,Grid.blockSize*18,uiPaint);
 
         uiPaint.setColor(Color.argb(255,0,0,255));
         canvas.drawText("AND",350,Grid.blockSize*3,uiPaint);
