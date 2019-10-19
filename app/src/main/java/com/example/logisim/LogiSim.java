@@ -15,6 +15,7 @@ import android.view.Display;
 import android.widget.ImageView;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -23,20 +24,56 @@ import java.util.List;
     Daryl Posnett's LogiSimEvaluationExample
  */
 interface Node{
+
     boolean eval();
+    void draw(Canvas canvas);
+    String whatObjAmI();
+    int getPosX();
+    int getPosY();
+
 }
 // All the logical gates
 class Switch implements Node{
     boolean state=false ;
+    int posX, posY;
     public Switch(){}
+    public Switch(float posX, float posY){
+        this.posX = (int) (posX * Grid.blockSize);
+        this.posY = (int) (posY * Grid.blockSize);
+    }
     public Switch( boolean state) { this . state = state; }
     public void toggle() { this . state = ! this . state ; }
     public boolean eval() { return state ; }
+
+    public void draw(Canvas canvas){
+        canvas.drawBitmap(LogiSim._switch,posX,posY,null);
+    }
+
+    @Override
+    public String whatObjAmI() {
+        return "Switch";
+    }
+
+    @Override
+    public int getPosX() {
+        return posX;
+    }
+
+    @Override
+    public int getPosY() {
+        return posY;
+    }
+
 }
 class AND implements Node{
     Node a,b;
-
+    int posX, posY;
     public AND () {}
+    public AND(float posX, float posY){
+        this.posX = (int) (posX * Grid.blockSize);
+        this.posY = (int) (posY * Grid.blockSize);
+    }
+
     public AND(Node a, Node b){
         this.setA(a);
         this.setB(b);
@@ -50,12 +87,34 @@ class AND implements Node{
 
     public boolean eval() {return a.eval() & b.eval();}
 
+    public void draw(Canvas canvas){
+        canvas.drawBitmap(LogiSim._and,posX,posY,null);
+    }
+
+    @Override
+    public String whatObjAmI() {
+        return "AND";
+    }
+    @Override
+    public int getPosX() {
+        return posX;
+    }
+
+    @Override
+    public int getPosY() {
+        return posY;
+    }
 
 }
 class OR implements Node{
     Node a,b;
+    int posX, posY;
 
     public OR () {}
+    public OR(float posX, float posY){
+        this.posX = (int) (posX * Grid.blockSize);
+        this.posY = (int) (posY * Grid.blockSize);
+    }
     public OR(Node a, Node b){
         this.setA(a);
         this.setB(b);
@@ -68,57 +127,97 @@ class OR implements Node{
     }
 
     public boolean eval() {return a.eval() | b.eval();}
-}
-class NOT implements Node{
-    Node n;
-
-    public NOT(){}
-    public NOT(Node n){this.setSource(n);}
-    public void setSource(Node n){this.n=n;}
-    public boolean eval(){return !n.eval();}
-}
-
-class VisualComponents{
-    int posX, posY;
-    String component;
-    public VisualComponents(float posX, float posY, String component){
-        this.posX = (int) (posX * Grid.blockSize);
-        this.posY = (int) (posY * Grid.blockSize);
-        this.component = component;
-    }
-    public void drawComponent(Canvas canvas){
-        switch (component){
-            case "AND":
-                canvas.drawBitmap(LogiSim._and,posX,posY,null);
-                break;
-            case "NOT":
-                canvas.drawBitmap(LogiSim._not,posX,posY,null);
-                break;
-            case "OR":
-                canvas.drawBitmap(LogiSim._or,posX,posY,null);
-                break;
-            case "SWITCH":
-                canvas.drawBitmap(LogiSim._switch,posX,posY,null);
-                break;
-            case "LED":
-                canvas.drawBitmap(LogiSim._led,posX,posY,null);
-            default:
-                break;
-        }
+    public void draw(Canvas canvas){
+        canvas.drawBitmap(LogiSim._or,posX,posY,null);
     }
 
+    @Override
+    public String whatObjAmI() {
+        return "OR";
+    }
+    @Override
     public int getPosX() {
         return posX;
     }
 
+    @Override
     public int getPosY() {
         return posY;
     }
+}
+class NOT implements Node{
+    Node n;
+    int posX, posY;
+    public NOT(){}
+    public NOT(float posX, float posY){
+        this.posX = (int) (posX * Grid.blockSize);
+        this.posY = (int) (posY * Grid.blockSize);
+    }
+    public NOT(Node n){this.setSource(n);}
+    public void setSource(Node n){this.n=n;}
+    public boolean eval(){return !n.eval();}
+    public void draw(Canvas canvas){
+        canvas.drawBitmap(LogiSim._not,posX,posY,null);
+    }
 
-    public String getComponent() {
-        return component;
+    @Override
+    public String whatObjAmI() {
+        return "NOT";
+    }
+    @Override
+    public int getPosX() {
+        return posX;
+    }
+
+    @Override
+    public int getPosY() {
+        return posY;
     }
 }
+class LED implements Node{
+    Node n;
+    int posX, posY;
+    public LED(){}
+    public LED(float posX, float posY){
+        this.posX = (int) (posX * Grid.blockSize);
+        this.posY = (int) (posY * Grid.blockSize);
+    }
+    public LED(Node n){this.setSource(n);}
+    public void setSource(Node n){this.n=n;}
+
+    public boolean eval() {
+        return n.eval();
+    }
+
+
+    public void draw(Canvas canvas) {
+        canvas.drawBitmap(LogiSim._led,posX,posY,null);
+    }
+
+    @Override
+    public String whatObjAmI() {
+        return "LED";
+    }
+    @Override
+    public int getPosX() {
+        return posX;
+    }
+
+    @Override
+    public int getPosY() {
+        return posY;
+    }
+}
+
+interface Mode{
+    void save();
+    void delete();
+    void playPause();
+    void wire();
+    void move();
+    void load();
+}
+
 class Wire{
     float startX, startY, stopX, stopY;
 
@@ -185,9 +284,9 @@ class Grid {
         numberVerticalPixels = size.y;
         blockSize = numberHorizontalPixels/gridWidth;
         gridHeight = numberVerticalPixels/blockSize;
-        interfaceWidth = 10*blockSize;
+        interfaceWidth = 6*blockSize;
         halfOfInterfaceWidth = interfaceWidth/2;
-        numberOfDividers = blockSize * 5;
+        numberOfDividers = blockSize * 2;
     }
 
 
@@ -196,11 +295,12 @@ class Grid {
 
         myCanvas.drawColor(Color.argb(255,255,255,255));
         //draws 2 horizontal lines to encapsulate the icons
-        myCanvas.drawLine(interfaceWidth,0,interfaceWidth,numberHorizontalPixels,paint);
-        myCanvas.drawLine(halfOfInterfaceWidth,0,halfOfInterfaceWidth,numberHorizontalPixels,paint);
+        myCanvas.drawLine(interfaceWidth,0,interfaceWidth,(float) (numberVerticalPixels*0.71),paint);
+        myCanvas.drawLine(halfOfInterfaceWidth,0,halfOfInterfaceWidth, (float) (numberVerticalPixels*0.71),paint);
+
 
         //a vertical divider to encapsulate the icons
-        for (int i=0; i<4;i++){
+        for (int i=0; i<8;i++){
 
             myCanvas.drawLine(0, numberOfDividers *i,interfaceWidth, numberOfDividers *i,paint);
         }
@@ -225,7 +325,7 @@ class Grid {
 
 }
 
-public class LogiSim extends Activity {
+public class LogiSim extends Activity implements Mode{
 
     static class TouchStatev2{
         static String state = "StandBy";
@@ -275,14 +375,12 @@ public class LogiSim extends Activity {
     Canvas canvas;
     Paint paint,paint2;
     Touch touch;
-    static Bitmap _and,_or,_not,_switch,_led;
-    List<Wire> visualWires;
-    List<VisualComponents> visualComponents;
-    List<Node> logicalComponents;
-    ArrayList<List<Node>> logicalSchematicList;
-    ArrayList<List<VisualComponents>> visualSchematicList;
+    static Bitmap _and,_or,_not,_switch,_led,_playpause,_delete,_move,_wire,_save,_a,_b,_c;
+    List<Node> circuitComponents;
+    ArrayList<List<Node>> schematicList;
     TouchState placeState;
     TouchStatev2 touchState;
+    Mode mode;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -305,12 +403,11 @@ public class LogiSim extends Activity {
         paint = new Paint();
         paint2 = new Paint();
         touch = new Touch();
-        visualComponents = new ArrayList<>();
-        logicalComponents = new ArrayList<>();
-        logicalSchematicList = new ArrayList<>();
-        visualSchematicList = new ArrayList<>();
+        circuitComponents = new ArrayList<>();
+        schematicList = new ArrayList<>();
         placeState = new TouchState();
         touchState = new TouchStatev2();
+
         setContentView(gameView);
 
 
@@ -322,11 +419,20 @@ public class LogiSim extends Activity {
     }
 
     public void getImagesReady() {
-        _and = BitmapFactory.decodeResource(getResources(), R.drawable.andgatetrans);
-        _or = BitmapFactory.decodeResource(getResources(), R.drawable.orgate);
-        _not = BitmapFactory.decodeResource(getResources(), R.drawable.notgate);
+        _and = BitmapFactory.decodeResource(getResources(), R.drawable.smallandgatetrans);
+        _or = BitmapFactory.decodeResource(getResources(), R.drawable.smallorgate);
+        _not = BitmapFactory.decodeResource(getResources(), R.drawable.smallnotgate);
         _switch = BitmapFactory.decodeResource(getResources(), R.drawable.switchsymbol);
-        _led = BitmapFactory.decodeResource(getResources(),R.drawable.bulb);
+        _led = BitmapFactory.decodeResource(getResources(),R.drawable.smallbulb);
+        _playpause = BitmapFactory.decodeResource(getResources(),R.drawable.playpause);
+        _delete = BitmapFactory.decodeResource(getResources(),R.drawable.delete);
+        _move = BitmapFactory.decodeResource(getResources(),R.drawable.move);
+        _wire = BitmapFactory.decodeResource(getResources(),R.drawable.wire);
+        _save = BitmapFactory.decodeResource(getResources(),R.drawable.save);
+        _a = BitmapFactory.decodeResource(getResources(),R.drawable.a);
+        _b = BitmapFactory.decodeResource(getResources(),R.drawable.b);
+        _c = BitmapFactory.decodeResource(getResources(),R.drawable.c);
+
     }
 
 
@@ -350,7 +456,7 @@ public class LogiSim extends Activity {
 
         UIlayout();
 
-        //drawVisualComponents();
+
         Log.d("Debugging", "In draw");
 
         if (debugging) {
@@ -360,12 +466,22 @@ public class LogiSim extends Activity {
 
     }
 
+
+
     private void drawComponentsList() {
-        final int listSize = visualComponents.size();
-        for (int i=0;i<listSize;i++)
-            visualComponents.get(i).drawComponent(canvas);
+        final int listSize = circuitComponents.size();
+
+        //final int listSize = visualComponents.size();
+        for (int i=0;i<listSize;i++){
+            //visualComponents.get(i).drawComponent(canvas);
+            circuitComponents.get(i).draw(canvas);
+        }
+
+
+
     }
 
+    //testing logic
     public void dynamicXOR(){
     // declare the objects
     //
@@ -414,55 +530,8 @@ public class LogiSim extends Activity {
     }
 
 
-    @Override
-    public boolean onTouchEvent(MotionEvent motionEvent) {
-        Log.d("Debugging", "In onTouchEvent");
-        if ((motionEvent.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP){
-            switch (touchState.getState()) {
-                case "StandBy":
-                    Touch.horizontalTouched = (int) motionEvent.getX() / grid.getBlockSize();
-                    Touch.verticalTouched = (int) motionEvent.getY() / grid.getBlockSize();
-                    whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
 
-                    if (whatWasTouched.equals("WIRE")) {
-                        touchState.toggleState(whatWasTouched);
-                    }
-                    if (whatWasTouched.equals("AND") || whatWasTouched.equals("NOT") || whatWasTouched.equals("OR") || whatWasTouched.equals("LED") || whatWasTouched.equals("SWITCH")) {
-                        touchState.toggleState(whatWasTouched);
-                    }
 
-                    break;
-                case "PlaceGate":
-                    Touch.secondHorizontalTouch = (int) motionEvent.getX() / grid.getBlockSize();
-                    Touch.secondVerticalTouch = (int) motionEvent.getY() / grid.getBlockSize();
-                    placeComponent();
-                    touchState.toggleState("");
-                    draw();
-                    break;
-                case "PlaceStartWire":
-                    Touch.thirdHorizontalTouch = (int) motionEvent.getX() / grid.getBlockSize();
-                    Touch.thirdVerticalTouch = (int) motionEvent.getY() / grid.getBlockSize();
-                    touchState.toggleState("PlaceEndWire");
-                    canvas.drawText("PlaceStartWire", 1500,1500,paint);
-                    break;
-                case "PlaceEndWire":
-                    Touch.fourthHorizontalTouch = (int) motionEvent.getX() / grid.getBlockSize();
-                    Touch.fourthVerticalTouch = (int) motionEvent.getY() / grid.getBlockSize();
-                    canvas.drawLine(Touch.thirdHorizontalTouch, Touch.thirdVerticalTouch, Touch.fourthHorizontalTouch, Touch.fourthVerticalTouch, paint);
-                    touchState.toggleState("");
-                    break;
-                case "DELETE":
-                    visualSchematicList.clear();
-                    logicalComponents.clear();
-                    touchState.toggleState("");
-                    break;
-            }
-            draw();
-        }
-        return true;
-    }
-
- /*
 
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent) {
@@ -473,10 +542,7 @@ public class LogiSim extends Activity {
                 Touch.verticalTouched = (int) motionEvent.getY() / grid.getBlockSize();
                 whatWasTouched = whatWasTouched(Touch.horizontalTouched, Touch.verticalTouched);
                 if(whatWasTouched.equals("DELETE")){
-                    visualComponents.clear();
-                    logicalComponents.clear();
-                }else if(whatWasTouched.equals("PLAY")){
-                    simulate();
+                    circuitComponents.clear();
                 }
                 placeState.toggleState();//sets to true
                 draw();
@@ -492,14 +558,6 @@ public class LogiSim extends Activity {
         return true;
     }
 
-  */
-
-
-    private void simulate() {
-        final int listSize = logicalComponents.size();
-
-
-    }
 
     void placeComponent(){
         Log.d("Debugging", "In placeComponent");
@@ -507,115 +565,207 @@ public class LogiSim extends Activity {
         // Convert the float screen coordinates
         // into int grid coordinates
         if(whatWasTouched.equals("DELETE")){
-            visualSchematicList.clear();
-            logicalComponents.clear();
-        }
-        else {
-            VisualComponents addThis = new VisualComponents(Touch.secondHorizontalTouch,Touch.secondVerticalTouch,whatWasTouched);
-            visualComponents.add(addThis);
-            createLogicalComponent(whatWasTouched);
+            circuitComponents.clear();
+        }else {
+            createComponent(whatWasTouched);
         }
 
 }
 
-    private void createLogicalComponent(String whatWasTouched) {
+    private void createComponent(String whatWasTouched) {
         switch(whatWasTouched){
             case "AND":
-                logicalComponents.add(new AND());
+                circuitComponents.add(new AND(Touch.secondHorizontalTouch,Touch.secondVerticalTouch));
                 break;
             case "OR":
-                logicalComponents.add(new OR());
+                circuitComponents.add(new OR(Touch.secondHorizontalTouch,Touch.secondVerticalTouch));
                 break;
             case "NOT":
-                logicalComponents.add(new NOT());
+                circuitComponents.add(new NOT(Touch.secondHorizontalTouch,Touch.secondVerticalTouch));
                 break;
             case "SWITCH":
-                logicalComponents.add(new Switch(false));
+                circuitComponents.add(new Switch(Touch.secondHorizontalTouch,Touch.secondVerticalTouch));
+                break;
+            case "LED":
+                circuitComponents.add(new LED(Touch.secondHorizontalTouch,Touch.secondVerticalTouch));
                 break;
         }
     }
 
 
+
     // used to tell regionHit() what to do
     private String whatWasTouched(float horizontalTouched, float verticalTouched) {
-        if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
-            if(verticalTouched >= 0.0 && verticalTouched <=4.0){
+        if(horizontalTouched >= 3.0 && horizontalTouched <= 5.0){
+            if(verticalTouched >= 0.0 && verticalTouched <=1.0){
                 return "AND";
             }
         }
-        if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
-            if(verticalTouched >= 5.0 && verticalTouched <=9.0){
+        if(horizontalTouched >= 3.0 && horizontalTouched <= 5.0){
+            if(verticalTouched >= 2.0 && verticalTouched <=3.0){
                 return "OR";
             }
         }
-        if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
-            if(verticalTouched >= 10.0 && verticalTouched <=14.0){
+        if(horizontalTouched >= 3.0 && horizontalTouched <= 5.0){
+            if(verticalTouched >= 4.0 && verticalTouched <=5.0){
                 return "NOT";
             }
         }
-        if(horizontalTouched >= 5.0 && horizontalTouched <= 9.0){
-            if(verticalTouched >= 15.0 && verticalTouched <=19.0){
+        if(horizontalTouched >= 3.0 && horizontalTouched <= 5.0){
+            if(verticalTouched >= 6.0 && verticalTouched <=7.0){
                 return "SWITCH";
             }
         }
-        if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
-            if(verticalTouched >= 0.0 && verticalTouched <=4.0){
-                return "Play";
-            }
-        }
-        if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
-            if(verticalTouched >= 5.0 && verticalTouched <=9.0){
-                return "DELETE";
-            }
-        }
-        if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
-            if(verticalTouched >= 10.0 && verticalTouched <=14.0){
-                return "WIRE";
-            }
-        }
-        if(horizontalTouched >= 0.0 && horizontalTouched <= 4.0){
-            if(verticalTouched >= 15.0 && verticalTouched <=19.0){
+        if(horizontalTouched >= 3.0 && horizontalTouched <= 5.0){
+            if(verticalTouched >= 8.0 && verticalTouched <=9.0){
                 return "LED";
             }
         }
+        if(horizontalTouched >= 3.0 && horizontalTouched <= 5.0){
+            if(verticalTouched >= 10.0 && verticalTouched <=11.0){
+                return "B";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 2.0){
+            if(verticalTouched >= 0.0 && verticalTouched <=1.0){
+                return "PlayPause";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 2.0){
+            if(verticalTouched >= 2.0 && verticalTouched <=3.0){
+                return "DELETE";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 2.0){
+            if(verticalTouched >= 4.0 && verticalTouched <=5.0){
+                return "MOVE";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 2.0){
+            if(verticalTouched >= 6.0 && verticalTouched <=7.0){
+                return "SAVE";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 2.0){
+            if(verticalTouched >= 8.0 && verticalTouched <=9.0){
+                return "A";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 2.0){
+            if(verticalTouched >= 10.0 && verticalTouched <=11.0){
+                return "C";
+            }
+        }
+        if(horizontalTouched >= 0.0 && horizontalTouched <= 2.0){
+            if(verticalTouched >= 6.0 && verticalTouched <=7.0){
+                return "WIRE";
+            }
+        }
+        if(horizontalTouched >5.0){
+            if(verticalTouched > 11.0){
+                return "CANVAS";
+            }
+        }
+
 
         return "-1";
     }
 
 
-    public void UIlayout(){
+    public void save() {
 
+        switch (whatWasTouched){
+            case "A":
+                schematicList.add(0,circuitComponents);
+                break;
+            case "B":
+                schematicList.add(1,circuitComponents);
+                break;
+            case "C":
+                schematicList.add(2,circuitComponents);
+                break;
+        }
+    }
 
-        Paint uiPaint = new Paint();
+    public void load() {
+        switch(whatWasTouched){
+            case "A":
+                circuitComponents = schematicList.get(0);
+                break;
+            case "B":
+                circuitComponents = schematicList.get(1);
+                break;
+            case "C":
+                circuitComponents = schematicList.get(2);
+                break;
+        }
+    }
 
-        //canvas.drawColor(Color.WHITE);
+    public void delete() {
+        circuitComponents.clear();
+    }
 
-        canvas.drawBitmap(_and,280 ,50,null );
-        canvas.drawBitmap(_or,280 ,300, null);
-        canvas.drawBitmap(_not,280 ,600, null);
-        canvas.drawBitmap(_switch,280 ,900, null);
-        canvas.drawBitmap(_led,5 ,900, null);
-
-        uiPaint.setTextSize(Grid.blockSize-3);
-        uiPaint.setColor(Color.BLACK);
-        canvas.drawText("Play",55,Grid.blockSize*3,uiPaint);
-        canvas.drawText("Delete",50,Grid.blockSize*8,uiPaint);
-        canvas.drawText("Wire",50,Grid.blockSize*13,uiPaint);
-        uiPaint.setColor(Color.argb(255,128,0,255));
-        canvas.drawText("LED",90,Grid.blockSize*18,uiPaint);
-
-        uiPaint.setColor(Color.argb(255,0,0,255));
-        canvas.drawText("AND",350,Grid.blockSize*3,uiPaint);
-        uiPaint.setColor(Color.argb(255,0,255,0));
-        canvas.drawText("OR",350,Grid.blockSize*7,uiPaint);
-        uiPaint.setColor(Color.argb(255,255,0,0));
-        canvas.drawText("NOT",340,Grid.blockSize*(float)12.75,uiPaint);
-        uiPaint.setColor(Color.argb(255,128,0,255));
-        canvas.drawText("Switch",350,Grid.blockSize*18,uiPaint);
-
+    //evaluating circuit
+    public void playPause() {
+        int i=0;
+        while(!circuitComponents.get(i).whatObjAmI().equals("LED")){
+            i++;
+        }
+        boolean eval;
+        eval = circuitComponents.get(i).eval();
+        if(eval){
+            canvas.drawText("1",circuitComponents.get(i).getPosX(),circuitComponents.get(i).getPosY(),paint);
+        }else
+            canvas.drawText("0",circuitComponents.get(i).getPosX(),circuitComponents.get(i).getPosY(),paint);
 
     }
-    // This code prints the debugging text
+
+    public void wire() {
+        int srcX,srcY,destX,destY;
+        srcX = (int) (Touch.secondHorizontalTouch *Grid.blockSize);
+        srcY = (int) (Touch.secondVerticalTouch *Grid.blockSize);
+        destX = (int) (Touch.thirdHorizontalTouch * Grid.blockSize);
+        destY = (int) (Touch.thirdVerticalTouch * Grid.blockSize);
+        int i=0;
+        while(circuitComponents.get(i).getPosX()!=srcX && circuitComponents.get(i).getPosY() !=srcY){
+            i++;
+        }
+        int j=0;
+        while(circuitComponents.get(j).getPosY() != destX && circuitComponents.get(j).getPosY() != destY){
+            j++;
+        }
+        canvas.drawLine(srcX,srcY,destX,destY,paint);
+
+    }
+
+    public void move() {
+        int srcX,srcY,destX,destY;
+        srcX = (int) (Touch.secondHorizontalTouch *Grid.blockSize);
+        srcY = (int) (Touch.secondVerticalTouch *Grid.blockSize);
+        destX = (int) (Touch.thirdHorizontalTouch * Grid.blockSize);
+        destY = (int) (Touch.thirdVerticalTouch * Grid.blockSize);
+    }
+
+
+
+
+    public void UIlayout(){
+        canvas.drawBitmap(_playpause,0,0,null);
+        canvas.drawBitmap(_delete,0,110,null);
+        canvas.drawBitmap(_move,0,220,null);
+        canvas.drawBitmap(_wire,0,330,null);
+        canvas.drawBitmap(_save,0,440,null);
+        canvas.drawBitmap(_a,0,550,null);
+        canvas.drawBitmap(_c,0,660,null);
+
+        canvas.drawBitmap(_and,165 ,0,null );
+        canvas.drawBitmap(_or,165 ,110, null);
+        canvas.drawBitmap(_not,165 ,220, null);
+        canvas.drawBitmap(_switch,165 ,330, null);
+        canvas.drawBitmap(_led,165 ,440, null);
+        canvas.drawBitmap(_b,165,550,null);
+    }
+
     public void printDebuggingText(){
 
         paint.setTextSize(grid.getBlockSize());
